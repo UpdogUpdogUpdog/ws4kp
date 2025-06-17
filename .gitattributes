@@ -4,3 +4,4 @@
 *.html text eol=lf
 *.json text eol=lf
 *.php text eol=lf
+.github/workflows/build-docker.yaml merge=ours

@@ -28,7 +28,13 @@ jobs:
           git fetch upstream
 
           BEFORE=$(git rev-parse HEAD)
-          git merge upstream/main --no-edit --allow-unrelated-histories -Xours
+
+          # Try fast-forward first; fallback to merge with -Xours if needed
+          git merge upstream/main --ff-only || {
+            echo "Fast-forward not possible. Performing merge with -Xours."
+            git merge upstream/main --no-edit -Xours
+          }
+
           AFTER=$(git rev-parse HEAD)
 
           echo "BEFORE: $BEFORE"
@@ -58,6 +64,9 @@ jobs:
 
       - name: Build static site
         run: npm run build
+
+      - name: Ensure CNAME file is present
+        run: echo "weather.updog.cool" > dist/CNAME
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4

@@ -2,7 +2,7 @@ name: Sync, Build & Deploy WS4KP
 
 on:
   schedule:
-    - cron: '30 6 * * *'  # Every night at 06:30 UTC / 02:30 Eastern
+    - cron: '30 7 * * *'  # runs daily at 2:30 AM EST / 7:30 UTC
   workflow_dispatch:
 
 jobs:
@@ -14,16 +14,15 @@ jobs:
         with:
           ref: main
 
-      - name: Configure Git
+      - name: Sync upstream safely
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global merge.ours.driver true
 
-      - name: Merge upstream/main into main
-        run: |
           git remote add upstream https://github.com/netbymatt/ws4kp.git || true
           git fetch upstream
+
           git merge upstream/main --no-edit --allow-unrelated-histories -Xours || true
           git push origin main || true
 
@@ -41,6 +40,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Sync missing music files
+        run: |
+          git clone --depth 1 https://github.com/netbymatt/ws4kp-music.git temp-music
+          mkdir -p server/music
+          rsync -av --ignore-existing temp-music/ server/music/
 
       - name: Build static site
         run: npm run build

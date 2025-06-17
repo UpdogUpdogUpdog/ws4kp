@@ -16,34 +16,60 @@ jobs:
         with:
           ref: main
 
+      - name: Fetch and compare upstream
+        id: check
+        run: |
+          git remote add upstream https://github.com/netbymatt/ws4kp.git || true
+          git fetch upstream
+          git fetch origin
+
+          MAIN_HASH=$(git rev-parse origin/main)
+          UPSTREAM_HASH=$(git rev-parse upstream/main)
+          COMBINED_HASH=$(echo "${MAIN_HASH}${UPSTREAM_HASH}" | sha1sum | cut -d' ' -f1)
+
+          echo "Main: $MAIN_HASH"
+          echo "Upstream: $UPSTREAM_HASH"
+          echo "Combined: $COMBINED_HASH"
+
+          echo "combined_hash=$COMBINED_HASH" >> $GITHUB_OUTPUT
+
+          # Save to temp file for later reuse
+          echo "$COMBINED_HASH" > .combined_hash
+
+      - name: Check for hash changes
+        id: should-sync
+        run: |
+          if [ -f .combined_hash.prev ]; then
+            PREV=$(cat .combined_hash.prev)
+            CURR=$(cat .combined_hash)
+            if [ "$PREV" = "$CURR" ]; then
+              echo "No upstream or local changes detected."
+              echo "did_sync_change=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+          echo "Change detected."
+          echo "did_sync_change=true" >> $GITHUB_OUTPUT
+
       - name: Sync upstream safely
+        if: steps.should-sync.outputs.did_sync_change == 'true'
         id: sync
-        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --global merge.ours.driver true
 
-          git remote add upstream https://github.com/netbymatt/ws4kp.git || true
-          git fetch upstream
-
-          BEFORE=$(git rev-parse HEAD)
-
-          # Try fast-forward first; fallback to merge with -Xours if needed
-          git merge upstream/main --ff-only || {
-            echo "Fast-forward not possible. Performing merge with -Xours."
+          git checkout main
+          git merge upstream/main --ff-only || \
             git merge upstream/main --no-edit --allow-unrelated-histories -Xours
-          }
 
-          AFTER=$(git rev-parse HEAD)
-
-          echo "BEFORE: $BEFORE"
-          echo "AFTER:  $AFTER"
-
-          echo "did_sync_change=$([ "$BEFORE" != "$AFTER" ] && echo true || echo false)" >> $GITHUB_OUTPUT
+      - name: Save hash for future comparison
+        if: steps.should-sync.outputs.did_sync_change == 'true'
+        run: |
+          cp .combined_hash .combined_hash.prev
 
       - name: Push updated main branch (if changed)
-        if: steps.sync.outputs.did_sync_change == 'true'
+        if: steps.should-sync.outputs.did_sync_change == 'true'
         run: git push origin main
 
   build-deploy:

@@ -1,0 +1,71 @@
+name: Sync, Build & Deploy WS4KP
+
+on:
+  schedule:
+    - cron: '30 6 * * *'  # nightly at 2:30 AM Eastern / 6:30 UTC
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    outputs:
+      did_sync_change: ${{ steps.sync.outputs.did_sync_change }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v2
+        with:
+          ref: main
+
+      - name: Sync upstream safely
+        id: sync
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git remote add upstream https://github.com/netbymatt/ws4kp.git || true
+          git fetch upstream
+
+          BEFORE=$(git rev-parse HEAD)
+
+          git merge upstream/main --no-edit
+
+          AFTER=$(git rev-parse HEAD)
+
+          echo "BEFORE: $BEFORE"
+          echo "AFTER:  $AFTER"
+
+          echo "did_sync_change=$([ "$BEFORE" != "$AFTER" ] && echo true || echo false)" >> $GITHUB_OUTPUT
+
+      - name: Push updated main branch (if changed)
+        if: steps.sync.outputs.did_sync_change == 'true'
+        run: git push origin main
+
+  build-deploy:
+    needs: sync
+    if: needs.sync.outputs.did_sync_change == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static site
+        run: npm run build
+
+      - name: Ensure CNAME file is present
+        run: echo "weather.updog.cool" > dist/CNAME
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./dist

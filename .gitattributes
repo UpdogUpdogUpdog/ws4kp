@@ -4,3 +4,6 @@
 *.html text eol=lf
 *.json text eol=lf
 *.php text eol=lf
+.github/workflows/build-docker.yaml merge=ours
+.github/workflows/ci-deploy.yml merge=ours
+.gitattributes merge=ours

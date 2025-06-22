@@ -12,9 +12,10 @@ jobs:
       did_sync_change: ${{ steps.sync.outputs.did_sync_change }}
     steps:
       - name: Checkout main
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           ref: main
+          fetch-depth: 0
 
       - name: Sync upstream safely
         id: sync

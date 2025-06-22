@@ -6,4 +6,5 @@
 *.php text eol=lf
 .github/workflows/build-docker.yaml merge=ours
 .github/workflows/ci-deploy.yml merge=ours
+.github/workflows/manual-build.yml merge=ours
 .gitattributes merge=ours

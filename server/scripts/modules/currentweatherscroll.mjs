@@ -15,6 +15,7 @@ let screenIndex = 0;
 let sinceLastUpdate = 0;
 let nextUpdate = DEFAULT_UPDATE;
 let resetFlag;
+let defaultScreensLoaded = true;
 
 // start drawing conditions
 // reset starts from the first item in the text scroll list
@@ -60,7 +61,7 @@ const incrementInterval = (force) => {
 		stop(display?.elemId === 'progress');
 		return;
 	}
-	screenIndex = (screenIndex + 1) % (lastScreen);
+	screenIndex = (screenIndex + 1) % (workingScreens.length);
 
 	// draw new text
 	drawScreen();
@@ -78,7 +79,7 @@ const drawScreen = async () => {
 	// nothing to do if there's no data yet
 	if (!data) return;
 
-	const thisScreen = screens[screenIndex](data);
+	const thisScreen = workingScreens[screenIndex](data);
 
 	// update classes on the scroll area
 	elemForEach('.weather-display .scroll', (elem) => {
@@ -125,8 +126,10 @@ const hazards = (data) => {
 	};
 };
 
+// additional screens are stored in a separate for simple clearing/resettings
+let additionalScreens = [];
 // the "screens" are stored in an array for easy addition and removal
-const screens = [
+const baseScreens = [
 	// hazards
 	hazards,
 	// station name
@@ -168,6 +171,9 @@ const screens = [
 	},
 ];
 
+// working screens are the combination of base screens (when active) and additional screens
+let workingScreens = [...baseScreens, ...additionalScreens];
+
 // internal draw function with preset parameters
 const drawCondition = (text) => {
 	// update all html scroll elements
@@ -183,19 +189,18 @@ const setHeader = (text) => {
 	});
 };
 
-// store the original number of screens
-const originalScreens = screens.length;
-let lastScreen = originalScreens;
-
-// reset the number of screens
+// reset the screens back to the original set
 const reset = () => {
-	lastScreen = originalScreens;
+	workingScreens = [...baseScreens];
+	additionalScreens = [];
+	defaultScreensLoaded = true;
 };
 
-// add screen
-const addScreen = (screen) => {
-	screens.push(screen);
-	lastScreen += 1;
+// add screen, keepBase keeps the regular weather crawl
+const addScreen = (screen, keepBase = true) => {
+	defaultScreensLoaded = false;
+	additionalScreens.push(screen);
+	workingScreens = [...(keepBase ? baseScreens : []), ...additionalScreens];
 };
 
 const drawScrollCondition = (screen) => {
@@ -238,6 +243,9 @@ const parseMessage = (event) => {
 	}
 };
 
+const screenCount = () => workingScreens.length;
+const atDefault = () => defaultScreensLoaded;
+
 // add event listener for start message
 window.addEventListener('message', parseMessage);
 
@@ -245,10 +253,14 @@ window.CurrentWeatherScroll = {
 	addScreen,
 	reset,
 	start,
+	screenCount,
+	atDefault,
 };
 
 export {
 	addScreen,
 	reset,
 	start,
+	screenCount,
+	atDefault,
 };

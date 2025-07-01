@@ -20,6 +20,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Sync missing music files
+        run: |
+          git clone --depth 1 https://github.com/netbymatt/ws4kp-music.git temp-music
+          mkdir -p server/music
+          rsync -av --ignore-existing temp-music/ server/music/
+
       - name: Build static site
         run: npm run build
 

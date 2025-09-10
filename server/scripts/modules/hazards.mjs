@@ -71,6 +71,7 @@ class Hazards extends WeatherDisplay {
 			// get the forecast using centralized safe handling
 			const url = new URL('https://api.weather.gov/alerts/active');
 			url.searchParams.append('point', `${this.weatherParameters.latitude},${this.weatherParameters.longitude}`);
+			url.searchParams.append('status', 'actual');
 			const alerts = await safeJson(url, { retryCount: 3, stillWaiting: () => this.stillWaiting() });
 
 			if (!alerts) {
@@ -103,7 +104,10 @@ class Hazards extends WeatherDisplay {
 			// show alert indicator
 			if (unViewed > 0) alert.classList.add('show');
 			// draw the canvas to calculate the new timings and activate hazards in the slide deck again
-			this.drawLongCanvas();
+			// unless this has been disabled
+			if (this.isEnabled) {
+				this.drawLongCanvas();
+			}
 		} catch (error) {
 			console.error(`Unexpected Active Alerts error: ${error.message}`);
 			if (this.isEnabled) this.setStatus(STATUS.failed);
@@ -115,7 +119,7 @@ class Hazards extends WeatherDisplay {
 		this.getDataCallback();
 
 		if (!superResult) {
-			this.setStatus(STATUS.loaded);
+			// Don't override status - super.getData() already set it to STATUS.disabled
 			return;
 		}
 		this.drawLongCanvas();

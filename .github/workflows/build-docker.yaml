@@ -12,6 +12,7 @@ on:
 
 jobs:
   build:
+    if: github.repository == 'netbymatt/ws4k'
     name: Build Image
     runs-on: ubuntu-latest
     permissions:
@@ -56,4 +57,4 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=ma

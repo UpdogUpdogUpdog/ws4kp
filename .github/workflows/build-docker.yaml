@@ -10,6 +10,7 @@ on:
 
 jobs:
   build:
+    if: github.repository == 'netbymatt/ws4k'
     name: Build Image
     runs-on: ubuntu-latest
     permissions:

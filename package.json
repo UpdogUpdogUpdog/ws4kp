@@ -1,6 +1,6 @@
 {
 	"name": "ws4kp",
-	"version": "7.1.6",
+	"version": "8.0.2",
 	"description": "Welcome to the WeatherStar 4000+ project page!",
 	"main": "index.mjs",
 	"type": "module",
